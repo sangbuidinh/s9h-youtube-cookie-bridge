@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "S9H YouTube Cookie Bridge",
+  "description": "Local-only YouTube cookie bridge for YouTube Downloaderbs.",
+  "version": "0.1.0",
+  "permissions": [
+    "cookies",
+    "alarms",
+    "nativeMessaging",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://youtube.com/*",
+    "https://*.youtube.com/*",
+    "https://youtube-nocookie.com/*",
+    "https://*.youtube-nocookie.com/*",
+    "https://google.com/*",
+    "https://*.google.com/*",
+    "https://googlevideo.com/*",
+    "https://*.googlevideo.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

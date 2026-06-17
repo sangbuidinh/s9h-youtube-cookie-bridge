@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>S9H YouTube Cookie Bridge</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="popup-shell">
+      <h1>S9H YouTube Cookie Bridge</h1>
+
+      <div class="actions">
+        <button id="exportButton" type="button">Export YouTube Cookies</button>
+        <button id="pingButton" type="button" class="secondary">Test Native Host</button>
+      </div>
+
+      <section class="identity-panel">
+        <span class="label">Extension ID</span>
+        <div class="copy-row">
+          <code id="extensionIdText">Loading...</code>
+          <button id="copyIdButton" type="button" class="secondary compact">Copy ID</button>
+        </div>
+        <span id="copyIdStatus" class="copy-status"></span>
+      </section>
+
+      <section class="auto-panel">
+        <label class="check-row">
+          <input id="autoExportCheckbox" type="checkbox">
+          <span>Auto export when YouTube/Google cookies change</span>
+        </label>
+        <div class="auto-status-row">
+          <span class="label">Auto export</span>
+          <span id="autoExportStatus">Disabled</span>
+        </div>
+        <div id="autoExportError" class="auto-error" hidden></div>
+      </section>
+
+      <section class="status-panel" aria-live="polite">
+        <div>
+          <span class="label">Status</span>
+          <span id="statusText">Ready</span>
+        </div>
+        <div>
+          <span class="label">Last export</span>
+          <span id="lastExportTime">Never</span>
+        </div>
+        <div>
+          <span class="label">Cookie count</span>
+          <span id="cookieCount">0</span>
+        </div>
+        <div>
+          <span class="label">Native host</span>
+          <span id="nativeHostStatus">Unknown</span>
+        </div>
+      </section>
+
+      <p class="warning">Local-only. Cookie values are sent only to the configured native host.</p>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

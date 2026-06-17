@@ -1,0 +1,25 @@
+data/runtime/*
+!data/runtime/.gitkeep
+*cookies*.txt
+youtube_cookies.txt
+api key.txt
+.env
+*.sqlite
+*.sqlite3
+*.db
+*.log
+logs/
+**pycache**/
+*.pyc
+dist/
+build/
+*.zip
+native/generated/
+native/config.json
+
+# Legacy local build folders from earlier packaging attempts.
+native-host/
+docs/
+/install_bridge.cmd
+/uninstall_bridge.cmd
+/verify_bridge.cmd
