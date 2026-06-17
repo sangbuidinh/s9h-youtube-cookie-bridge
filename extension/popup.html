@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,15 +11,15 @@
       <h1>S9H YouTube Cookie Bridge</h1>
 
       <div class="actions">
-        <button id="exportButton" type="button">Export YouTube Cookies</button>
-        <button id="pingButton" type="button" class="secondary">Test Native Host</button>
+        <button id="exportButton" type="button">Xuất cookie YouTube</button>
+        <button id="pingButton" type="button" class="secondary">Kiểm tra Native Host</button>
       </div>
 
       <section class="identity-panel">
-        <span class="label">Extension ID</span>
+        <span class="label">ID tiện ích</span>
         <div class="copy-row">
-          <code id="extensionIdText">Loading...</code>
-          <button id="copyIdButton" type="button" class="secondary compact">Copy ID</button>
+          <code id="extensionIdText">Đang tải...</code>
+          <button id="copyIdButton" type="button" class="secondary compact">Sao chép ID</button>
         </div>
         <span id="copyIdStatus" class="copy-status"></span>
       </section>
@@ -27,35 +27,36 @@
       <section class="auto-panel">
         <label class="check-row">
           <input id="autoExportCheckbox" type="checkbox">
-          <span>Auto export when YouTube/Google cookies change</span>
+          <span>Tự động xuất khi cookie YouTube/Google thay đổi</span>
         </label>
+        <p class="warning">Chỉ bật khi đang tải bằng YouTube Downloaderbs. Khi không tải nữa, nên bỏ tích để tránh xuất cookie không cần thiết.</p>
         <div class="auto-status-row">
-          <span class="label">Auto export</span>
-          <span id="autoExportStatus">Disabled</span>
+          <span class="label">Tự động xuất</span>
+          <span id="autoExportStatus">Đang tắt</span>
         </div>
         <div id="autoExportError" class="auto-error" hidden></div>
       </section>
 
       <section class="status-panel" aria-live="polite">
         <div>
-          <span class="label">Status</span>
-          <span id="statusText">Ready</span>
+          <span class="label">Trạng thái</span>
+          <span id="statusText">Sẵn sàng</span>
         </div>
         <div>
-          <span class="label">Last export</span>
-          <span id="lastExportTime">Never</span>
+          <span class="label">Lần xuất gần nhất</span>
+          <span id="lastExportTime">Chưa có</span>
         </div>
         <div>
-          <span class="label">Cookie count</span>
+          <span class="label">Số cookie</span>
           <span id="cookieCount">0</span>
         </div>
         <div>
-          <span class="label">Native host</span>
-          <span id="nativeHostStatus">Unknown</span>
+          <span class="label">Native Host</span>
+          <span id="nativeHostStatus">Chưa kết nối</span>
         </div>
       </section>
 
-      <p class="warning">Local-only. Cookie values are sent only to the configured native host.</p>
+      <p class="warning">Chạy cục bộ. Cookie chỉ được gửi tới Native Host đã cấu hình trên máy này.</p>
     </main>
 
     <script src="popup.js"></script>

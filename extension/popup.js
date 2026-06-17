@@ -12,8 +12,18 @@ const copyIdStatus = document.getElementById("copyIdStatus");
 const autoExportCheckbox = document.getElementById("autoExportCheckbox");
 const autoExportStatus = document.getElementById("autoExportStatus");
 const autoExportError = document.getElementById("autoExportError");
-const INSTALL_HINT = "Native host not connected. Run install_bridge.cmd in the project folder, then reload the extension.";
+const INSTALL_HINT = "Native Host chưa kết nối. Hãy chạy native/install_bridge.cmd, rồi tải lại tiện ích.";
 const EXPORT_BUSY_MESSAGE = "Another cookie export is still running. Try again in a few seconds.";
+const EXPORT_BUSY_MESSAGE_VI = "Một lần xuất cookie khác vẫn đang chạy. Hãy thử lại sau vài giây.";
+const AUTO_EXPORT_STATUS_LABELS = Object.freeze({
+  enabled: "Đang bật",
+  disabled: "Đang tắt",
+  scheduled: "Đã lên lịch",
+  queued: "Đang chờ",
+  exporting: "Đang xuất",
+  success: "Đã xuất",
+  error: "Lỗi"
+});
 
 function setBusy(isBusy) {
   exportButton.disabled = isBusy;
@@ -26,23 +36,42 @@ function setStatus(message, state) {
 }
 
 function setNativeHostError(message) {
-  nativeHostStatus.textContent = "Error";
+  nativeHostStatus.textContent = "Chưa kết nối";
   setStatus(message || INSTALL_HINT, "error");
+}
+
+function translateMessage(message) {
+  const value = String(message || "");
+  const translations = {
+    "Unsupported request.": "Yêu cầu không được hỗ trợ.",
+    "Unknown request.": "Yêu cầu không xác định.",
+    "Native host is not available.": "Native Host chưa sẵn sàng.",
+    "Native host returned an empty response.": "Native Host trả về phản hồi trống.",
+    "Could not contact extension background worker.": "Không thể liên hệ nền tiện ích.",
+    "Could not update auto export.": "Không thể cập nhật tự động xuất.",
+    "Auto export failed.": "Tự động xuất thất bại.",
+    "Unexpected error.": "Lỗi không xác định."
+  };
+
+  if (value === EXPORT_BUSY_MESSAGE) {
+    return EXPORT_BUSY_MESSAGE_VI;
+  }
+  return translations[value] || value;
 }
 
 function nativeHostErrorMessage(response) {
   if (response && response.error) {
     if (response.error === EXPORT_BUSY_MESSAGE) {
-      return response.error;
+      return EXPORT_BUSY_MESSAGE_VI;
     }
-    return response.error + " " + INSTALL_HINT;
+    return translateMessage(response.error) + " " + INSTALL_HINT;
   }
   return INSTALL_HINT;
 }
 
 function formatTime(value) {
   if (!value) {
-    return "Never";
+    return "Chưa có";
   }
 
   const date = new Date(value);
@@ -71,8 +100,8 @@ function renderAutoExportState(state) {
   const error = state.lastAutoExportError || "";
 
   autoExportCheckbox.checked = enabled;
-  autoExportStatus.textContent = enabled ? status : "disabled";
-  autoExportError.textContent = error;
+  autoExportStatus.textContent = AUTO_EXPORT_STATUS_LABELS[enabled ? status : "disabled"] || status;
+  autoExportError.textContent = translateMessage(error);
   autoExportError.hidden = !error;
 }
 
@@ -87,7 +116,7 @@ function loadState() {
   ], function (state) {
     lastExportTime.textContent = formatTime(state.lastExportTime);
     cookieCount.textContent = String(state.lastCookieCount || 0);
-    nativeHostStatus.textContent = state.lastNativeHostStatus || "Unknown";
+    nativeHostStatus.textContent = state.lastNativeHostStatus === "connected" ? "Đã kết nối" : "Chưa kết nối";
     renderAutoExportState(state);
   });
 }
@@ -106,21 +135,21 @@ async function copyExtensionId() {
     }
 
     await navigator.clipboard.writeText(extensionId);
-    copyIdStatus.textContent = "Copied.";
+    copyIdStatus.textContent = "Đã sao chép.";
   } catch (error) {
-    copyIdStatus.textContent = "Copy failed. Copy the ID manually.";
+    copyIdStatus.textContent = "Không sao chép được. Hãy sao chép ID thủ công.";
   }
 }
 
 async function testNativeHost() {
   setBusy(true);
-  setStatus("Testing native host...", "neutral");
+  setStatus("Đang kiểm tra Native Host...", "neutral");
 
   try {
     const response = await sendAction("ping_host");
     if (response && response.ok) {
-      nativeHostStatus.textContent = "Connected";
-      setStatus("Native host connected.", "success");
+      nativeHostStatus.textContent = "Đã kết nối";
+      setStatus("Native Host đã kết nối.", "success");
       return;
     }
 
@@ -134,7 +163,7 @@ async function testNativeHost() {
 
 async function exportCookies() {
   setBusy(true);
-  setStatus("Exporting cookies...", "neutral");
+  setStatus("Đang xuất cookie...", "neutral");
 
   try {
     const response = await sendAction("export_youtube_cookies");
@@ -143,8 +172,8 @@ async function exportCookies() {
       const count = Number(response.cookie_count || 0);
       lastExportTime.textContent = formatTime(updatedAt);
       cookieCount.textContent = String(count);
-      nativeHostStatus.textContent = "Connected";
-      setStatus("Export completed.", "success");
+      nativeHostStatus.textContent = "Đã kết nối";
+      setStatus("Xuất cookie thành công.", "success");
       return;
     }
 
@@ -159,7 +188,7 @@ async function exportCookies() {
 async function toggleAutoExport() {
   const enabled = autoExportCheckbox.checked;
   autoExportCheckbox.disabled = true;
-  setStatus(enabled ? "Enabling auto export..." : "Disabling auto export...", "neutral");
+  setStatus(enabled ? "Đang bật tự động xuất..." : "Đang tắt tự động xuất...", "neutral");
 
   try {
     const response = await sendAction("set_auto_export_enabled", { enabled: enabled });
@@ -169,15 +198,15 @@ async function toggleAutoExport() {
         lastAutoExportStatus: response.lastAutoExportStatus,
         lastAutoExportError: ""
       });
-      setStatus(enabled ? "Auto export enabled." : "Auto export disabled.", "success");
+      setStatus(enabled ? "Đã bật tự động xuất." : "Đã tắt tự động xuất.", "success");
       return;
     }
 
     autoExportCheckbox.checked = !enabled;
-    setStatus(response && response.error ? response.error : "Could not update auto export.", "error");
+    setStatus(response && response.error ? translateMessage(response.error) : "Không thể cập nhật tự động xuất.", "error");
   } catch (error) {
     autoExportCheckbox.checked = !enabled;
-    setStatus("Could not update auto export.", "error");
+    setStatus("Không thể cập nhật tự động xuất.", "error");
   } finally {
     autoExportCheckbox.disabled = false;
   }
