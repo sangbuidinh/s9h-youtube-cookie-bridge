@@ -39,12 +39,29 @@ function buildExportMessage(cookies) {
   };
 }
 
+function buildCookieFileStatusMessage() {
+  return {
+    type: "getCookieFileStatus",
+    version: BRIDGE_MESSAGE_VERSION,
+    source: BRIDGE_SOURCE
+  };
+}
+
+function buildOpenCookieFileLocationMessage() {
+  return {
+    type: "openCookieFileLocation",
+    version: BRIDGE_MESSAGE_VERSION,
+    source: BRIDGE_SOURCE
+  };
+}
+
 self.S9HNativeBridge = {
   NATIVE_HOST_NAME: NATIVE_HOST_NAME,
   BRIDGE_SOURCE: BRIDGE_SOURCE,
   BRIDGE_MESSAGE_VERSION: BRIDGE_MESSAGE_VERSION,
   sendMessageToNativeHost: sendMessageToNativeHost,
   buildPingMessage: buildPingMessage,
-  buildExportMessage: buildExportMessage
+  buildExportMessage: buildExportMessage,
+  buildCookieFileStatusMessage: buildCookieFileStatusMessage,
+  buildOpenCookieFileLocationMessage: buildOpenCookieFileLocationMessage
 };
-

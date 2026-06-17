@@ -2,6 +2,7 @@
 
 const statusText = document.getElementById("statusText");
 const lastExportTime = document.getElementById("lastExportTime");
+const openCookieFileButton = document.getElementById("openCookieFileButton");
 const cookieCount = document.getElementById("cookieCount");
 const nativeHostStatus = document.getElementById("nativeHostStatus");
 const exportButton = document.getElementById("exportButton");
@@ -50,6 +51,9 @@ function translateMessage(message) {
     "Could not contact extension background worker.": "Không thể liên hệ nền tiện ích.",
     "Could not update auto export.": "Không thể cập nhật tự động xuất.",
     "Auto export failed.": "Tự động xuất thất bại.",
+    "Cookie file not found.": "Chưa có file cookie đã lưu.",
+    "Could not open cookie file location.": "Không mở được vị trí file cookie.",
+    "Opening cookie file location is only supported on Windows.": "Chỉ hỗ trợ mở vị trí file cookie trên Windows.",
     "Unexpected error.": "Lỗi không xác định."
   };
 
@@ -67,6 +71,10 @@ function nativeHostErrorMessage(response) {
     return translateMessage(response.error) + " " + INSTALL_HINT;
   }
   return INSTALL_HINT;
+}
+
+function setCookieFileButtonEnabled(enabled) {
+  openCookieFileButton.disabled = enabled !== true;
 }
 
 function formatTime(value) {
@@ -92,6 +100,15 @@ function sendAction(action, payload) {
       resolve(response);
     });
   });
+}
+
+async function refreshCookieFileStatus() {
+  try {
+    const response = await sendAction("get_cookie_file_status");
+    setCookieFileButtonEnabled(Boolean(response && response.ok && response.exists));
+  } catch (error) {
+    setCookieFileButtonEnabled(false);
+  }
 }
 
 function renderAutoExportState(state) {
@@ -173,6 +190,7 @@ async function exportCookies() {
       lastExportTime.textContent = formatTime(updatedAt);
       cookieCount.textContent = String(count);
       nativeHostStatus.textContent = "Đã kết nối";
+      setCookieFileButtonEnabled(true);
       setStatus("Xuất cookie thành công.", "success");
       return;
     }
@@ -212,11 +230,55 @@ async function toggleAutoExport() {
   }
 }
 
+async function openCookieFileLocation() {
+  openCookieFileButton.disabled = true;
+
+  try {
+    const response = await sendAction("open_cookie_file_location");
+    if (response && response.ok) {
+      setCookieFileButtonEnabled(true);
+      nativeHostStatus.textContent = "Đã kết nối";
+      setStatus("Đã mở vị trí file cookie.", "success");
+      return;
+    }
+
+    await refreshCookieFileStatus();
+    const isMissing = response && response.error_code === "cookie_file_missing";
+    setStatus(isMissing ? "Chưa có file cookie đã lưu." : "Không mở được vị trí file cookie.", "error");
+  } catch (error) {
+    await refreshCookieFileStatus();
+    setStatus("Không mở được vị trí file cookie.", "error");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   loadExtensionId();
   loadState();
+  refreshCookieFileStatus();
   copyIdButton.addEventListener("click", copyExtensionId);
   pingButton.addEventListener("click", testNativeHost);
   exportButton.addEventListener("click", exportCookies);
+  openCookieFileButton.addEventListener("click", openCookieFileLocation);
   autoExportCheckbox.addEventListener("change", toggleAutoExport);
+});
+
+chrome.storage.onChanged.addListener(function (changes, areaName) {
+  if (areaName !== "local") {
+    return;
+  }
+
+  if (
+    changes.lastExportTime ||
+    changes.lastCookieCount ||
+    changes.lastNativeHostStatus ||
+    changes.autoExportEnabled ||
+    changes.lastAutoExportStatus ||
+    changes.lastAutoExportError
+  ) {
+    loadState();
+  }
+
+  if (changes.lastExportTime || changes.lastWrittenTo) {
+    refreshCookieFileStatus();
+  }
 });

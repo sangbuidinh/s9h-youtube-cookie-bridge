@@ -162,11 +162,26 @@ button:disabled {
   background: var(--panel);
 }
 
-.status-panel div {
+.status-panel > div {
   display: grid;
   grid-template-columns: 94px minmax(0, 1fr);
   gap: 6px;
   align-items: baseline;
+}
+
+.status-value-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  gap: 5px;
+  align-items: center;
+  min-width: 0;
+}
+
+.icon-button {
+  min-height: 24px;
+  padding: 0 6px;
+  font-size: 10px;
+  line-height: 1;
 }
 
 .label {

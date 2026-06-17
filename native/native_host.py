@@ -7,6 +7,7 @@ import json
 import math
 import os
 from pathlib import Path
+import subprocess
 import struct
 import sys
 import tempfile
@@ -326,12 +327,64 @@ def handle_export(message: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def handle_cookie_file_status(message: dict[str, Any]) -> dict[str, Any]:
+    if message.get("version") != VERSION:
+        raise HostError("Unsupported message version.")
+    if message.get("source") != SOURCE_NAME:
+        raise HostError("Unsupported message source.")
+
+    output_path = load_output_cookie_file()
+    return {
+        "ok": True,
+        "type": "cookie_file_status",
+        "exists": output_path.is_file(),
+    }
+
+
+def handle_open_cookie_file_location(message: dict[str, Any]) -> dict[str, Any]:
+    if message.get("version") != VERSION:
+        raise HostError("Unsupported message version.")
+    if message.get("source") != SOURCE_NAME:
+        raise HostError("Unsupported message source.")
+
+    output_path = load_output_cookie_file()
+    if not output_path.is_file():
+        return {
+            "ok": False,
+            "type": "open_cookie_file_location_result",
+            "error": "Cookie file not found.",
+            "error_code": "cookie_file_missing",
+        }
+
+    if os.name != "nt":
+        return {
+            "ok": False,
+            "type": "open_cookie_file_location_result",
+            "error": "Opening cookie file location is only supported on Windows.",
+            "error_code": "open_location_unsupported",
+        }
+
+    try:
+        subprocess.Popen(["explorer.exe", f"/select,{output_path}"])
+    except OSError as exc:
+        raise HostError("Could not open cookie file location.") from exc
+
+    return {
+        "ok": True,
+        "type": "open_cookie_file_location_result",
+    }
+
+
 def handle_message(message: dict[str, Any]) -> dict[str, Any]:
     message_type = message.get("type")
     if message_type == "ping":
         return handle_ping(message)
     if message_type == "export_youtube_cookies":
         return handle_export(message)
+    if message_type == "getCookieFileStatus":
+        return handle_cookie_file_status(message)
+    if message_type == "openCookieFileLocation":
+        return handle_open_cookie_file_location(message)
     raise HostError("Unsupported message type.")
 
 

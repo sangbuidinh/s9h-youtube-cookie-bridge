@@ -42,9 +42,19 @@
           <span class="label">Trạng thái</span>
           <span id="statusText">Sẵn sàng</span>
         </div>
-        <div>
+        <div class="last-export-row">
           <span class="label">Lần xuất gần nhất</span>
-          <span id="lastExportTime">Chưa có</span>
+          <div class="status-value-action">
+            <span id="lastExportTime">Chưa có</span>
+            <button
+              id="openCookieFileButton"
+              type="button"
+              class="secondary icon-button"
+              title="Mở vị trí file cookie đã lưu"
+              aria-label="Mở vị trí file cookie đã lưu"
+              disabled
+            >Mở</button>
+          </div>
         </div>
         <div>
           <span class="label">Số cookie</span>

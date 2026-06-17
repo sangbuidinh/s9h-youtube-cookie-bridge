@@ -248,6 +248,30 @@ async function pingHost() {
   return response;
 }
 
+async function getCookieFileStatus() {
+  const response = await self.S9HNativeBridge.sendMessageToNativeHost(
+    self.S9HNativeBridge.buildCookieFileStatusMessage()
+  );
+
+  await storageSet({
+    lastNativeHostStatus: response.ok ? "connected" : "error"
+  });
+
+  return response;
+}
+
+async function openCookieFileLocation() {
+  const response = await self.S9HNativeBridge.sendMessageToNativeHost(
+    self.S9HNativeBridge.buildOpenCookieFileLocationMessage()
+  );
+
+  await storageSet({
+    lastNativeHostStatus: response.ok ? "connected" : "error"
+  });
+
+  return response;
+}
+
 async function exportYoutubeCookies() {
   try {
     return await runExportWithLock("manual");
@@ -370,6 +394,14 @@ async function handlePopupMessage(message) {
 
   if (message.action === "set_auto_export_enabled") {
     return setAutoExportEnabled(message.enabled === true);
+  }
+
+  if (message.action === "get_cookie_file_status") {
+    return getCookieFileStatus();
+  }
+
+  if (message.action === "open_cookie_file_location") {
+    return openCookieFileLocation();
   }
 
   return {
