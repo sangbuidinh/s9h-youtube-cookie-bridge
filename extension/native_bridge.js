@@ -29,12 +29,13 @@ function buildPingMessage() {
   };
 }
 
-function buildExportMessage(cookies) {
+function buildExportMessage(cookies, exportAction) {
   return {
     type: "export_youtube_cookies",
     version: BRIDGE_MESSAGE_VERSION,
     source: BRIDGE_SOURCE,
     created_at: new Date().toISOString(),
+    export_action: exportAction || "unknown_export",
     cookies: cookies
   };
 }

@@ -1,0 +1,9 @@
+{
+  "name": "com.s9h.youtube_downloader.cookies",
+  "description": "S9H YouTube Cookie Bridge Native Host",
+  "path": "<ABSOLUTE_PATH_TO_native-host/dist/cookie_bridge_host.exe>",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://<EXTENSION_ID>/"
+  ]
+}

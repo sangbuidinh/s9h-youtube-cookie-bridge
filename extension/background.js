@@ -150,10 +150,14 @@ function isAllowedChangedCookie(changeInfo) {
   );
 }
 
-async function runNativeCookieExport() {
+function nativeExportAction(kind) {
+  return kind === "auto" ? "auto_export" : "manual_export";
+}
+
+async function runNativeCookieExport(kind) {
   const collected = await self.S9HYoutubeCookieExport.collectYoutubeCookies();
   const response = await self.S9HNativeBridge.sendMessageToNativeHost(
-    self.S9HNativeBridge.buildExportMessage(collected.cookies)
+    self.S9HNativeBridge.buildExportMessage(collected.cookies, nativeExportAction(kind))
   );
 
   const now = nowIsoString();
@@ -218,7 +222,7 @@ async function waitForActiveExport(timeoutMs) {
 async function runExportWithLock(kind) {
   await waitForActiveExport(kind === "manual" ? MANUAL_EXPORT_WAIT_TIMEOUT_MS : undefined);
 
-  const promise = runNativeCookieExport();
+  const promise = runNativeCookieExport(kind);
   activeExportPromise = promise;
   if (kind === "auto") {
     autoExportInProgress = true;

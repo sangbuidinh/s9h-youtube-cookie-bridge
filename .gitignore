@@ -17,9 +17,13 @@ build/
 native/generated/
 native/config.json
 
-# Legacy local build folders from earlier packaging attempts.
-native-host/
+# Native host build artifacts. The release EXE is tracked explicitly.
+native-host/build/
+native-host/generated/
+native-host/__pycache__/
+native-host/config.json
+!native-host/dist/
+!native-host/dist/cookie_bridge_host.exe
+
+# Local docs generated during development.
 docs/
-/install_bridge.cmd
-/uninstall_bridge.cmd
-/verify_bridge.cmd

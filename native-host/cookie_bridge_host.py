@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import math
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 import subprocess
 import struct
@@ -31,6 +32,7 @@ HOST_DIR = RUNTIME_DIR.parent if RUNTIME_DIR.name.lower() == "dist" else RUNTIME
 PROJECT_ROOT = HOST_DIR.parent
 CONFIG_PATH = HOST_DIR / "config.json"
 DEFAULT_OUTPUT_COOKIE_FILE = PROJECT_ROOT / "data" / "runtime" / "youtube_cookies.txt"
+DIAGNOSTICS_LOG_PATH = PROJECT_ROOT / "data" / "runtime" / "bridge_diagnostics.log"
 
 ALLOWED_COOKIE_DOMAINS = (
     ".youtube.com",
@@ -60,6 +62,72 @@ class HostError(Exception):
 def stderr_log(message: str) -> None:
     sys.stderr.write(message + "\n")
     sys.stderr.flush()
+
+
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def file_metadata(path: Path) -> dict[str, Any]:
+    try:
+        stat = path.stat()
+        if not path.is_file():
+            raise OSError
+        return {
+            "exists": True,
+            "size": stat.st_size,
+            "mtime_ns": stat.st_mtime_ns,
+            "mtime": datetime.fromtimestamp(stat.st_mtime_ns / 1_000_000_000, timezone.utc).isoformat(),
+        }
+    except OSError:
+        return {
+            "exists": False,
+            "size": 0,
+            "mtime_ns": None,
+            "mtime": None,
+        }
+
+
+def append_diagnostic(
+    event: str,
+    action: str,
+    output_path: Path | None,
+    *,
+    success: bool,
+    error_code: str = "",
+    error: str = "",
+    bytes_written: int | None = None,
+) -> None:
+    metadata = file_metadata(output_path) if output_path is not None else file_metadata(Path(""))
+    record = {
+        "tag": "BRIDGE-DIAG",
+        "timestamp": utc_now_iso(),
+        "event": event,
+        "action": action,
+        "output_cookie_path": str(output_path) if output_path is not None else "",
+        "exists_after_write": metadata["exists"],
+        "bytes_written": 0 if bytes_written is None else bytes_written,
+        "size": metadata["size"],
+        "mtime_ns": metadata["mtime_ns"],
+        "mtime": metadata["mtime"],
+        "success": success,
+        "error_code": error_code,
+        "error": error,
+    }
+
+    try:
+        DIAGNOSTICS_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with DIAGNOSTICS_LOG_PATH.open("a", encoding="utf-8", newline="\n") as log_file:
+            log_file.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
+    except OSError:
+        pass
+
+
+def export_action_from_message(message: dict[str, Any]) -> str:
+    action = str(message.get("export_action") or "").strip()
+    if action in {"manual_export", "auto_export"}:
+        return action
+    return "unknown_export"
 
 
 def read_exact(length: int) -> bytes:
@@ -309,14 +377,65 @@ def handle_export(message: dict[str, Any]) -> dict[str, Any]:
     if message.get("source") != SOURCE_NAME:
         raise HostError("Unsupported message source.")
 
+    action = export_action_from_message(message)
     cookies = message.get("cookies")
     if not isinstance(cookies, list):
+        append_diagnostic(
+            "export_failed",
+            action,
+            None,
+            success=False,
+            error_code="invalid_cookies_payload",
+            error="Export message cookies field must be a list.",
+        )
         raise HostError("Export message cookies field must be a list.")
 
-    normalized = dedupe_cookies(normalize_cookies(cookies))
-    output_path = load_output_cookie_file()
-    write_text_atomically(output_path, format_netscape(normalized))
-    updated_at = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
+    try:
+        output_path = load_output_cookie_file()
+    except HostError as exc:
+        append_diagnostic(
+            "export_failed",
+            action,
+            None,
+            success=False,
+            error_code="output_path_unavailable",
+            error=str(exc),
+        )
+        raise
+
+    try:
+        normalized = dedupe_cookies(normalize_cookies(cookies))
+        write_text_atomically(output_path, format_netscape(normalized))
+    except HostError as exc:
+        append_diagnostic(
+            "export_failed",
+            action,
+            output_path,
+            success=False,
+            error_code="export_validation_failed",
+            error=str(exc),
+        )
+        raise
+    except OSError as exc:
+        append_diagnostic(
+            "export_failed",
+            action,
+            output_path,
+            success=False,
+            error_code="cookie_file_write_failed",
+            error=str(exc),
+        )
+        raise HostError("Could not write cookie file.") from exc
+
+    metadata = file_metadata(output_path)
+    append_diagnostic(
+        "export_success",
+        action,
+        output_path,
+        success=True,
+        bytes_written=metadata["size"],
+    )
+    updated_at = utc_now_iso()
 
     return {
         "ok": True,
@@ -333,11 +452,34 @@ def handle_cookie_file_status(message: dict[str, Any]) -> dict[str, Any]:
     if message.get("source") != SOURCE_NAME:
         raise HostError("Unsupported message source.")
 
-    output_path = load_output_cookie_file()
+    try:
+        output_path = load_output_cookie_file()
+    except HostError as exc:
+        append_diagnostic(
+            "status_failed",
+            "getCookieFileStatus",
+            None,
+            success=False,
+            error_code="output_path_unavailable",
+            error=str(exc),
+        )
+        raise
+
+    append_diagnostic(
+        "status_checked",
+        "getCookieFileStatus",
+        output_path,
+        success=True,
+    )
+    metadata = file_metadata(output_path)
     return {
         "ok": True,
         "type": "cookie_file_status",
-        "exists": output_path.is_file(),
+        "exists": metadata["exists"],
+        "size": metadata["size"],
+        "mtime": metadata["mtime"],
+        "mtime_ns": metadata["mtime_ns"],
+        "path": str(output_path),
     }
 
 
@@ -347,16 +489,54 @@ def handle_open_cookie_file_location(message: dict[str, Any]) -> dict[str, Any]:
     if message.get("source") != SOURCE_NAME:
         raise HostError("Unsupported message source.")
 
-    output_path = load_output_cookie_file()
+    try:
+        output_path = load_output_cookie_file()
+    except HostError as exc:
+        append_diagnostic(
+            "open_location_failed",
+            "openCookieFileLocation",
+            None,
+            success=False,
+            error_code="output_path_unavailable",
+            error=str(exc),
+        )
+        raise
+
     if not output_path.is_file():
+        opened_folder = False
+        runtime_folder = output_path.parent
+        try:
+            if os.name == "nt" and runtime_folder.exists() and runtime_folder.resolve() == (PROJECT_ROOT / "data" / "runtime").resolve():
+                subprocess.Popen(["explorer.exe", str(runtime_folder)])
+                opened_folder = True
+        except OSError:
+            opened_folder = False
+
+        append_diagnostic(
+            "open_location_failed",
+            "openCookieFileLocation",
+            output_path,
+            success=False,
+            error_code="cookie_file_missing",
+            error="Cookie file not found.",
+        )
         return {
             "ok": False,
             "type": "open_cookie_file_location_result",
             "error": "Cookie file not found.",
             "error_code": "cookie_file_missing",
+            "opened_folder": opened_folder,
         }
 
     if os.name != "nt":
+        append_diagnostic(
+            "open_location_failed",
+            "openCookieFileLocation",
+            output_path,
+            success=False,
+            error_code="open_location_unsupported",
+            error="Opening cookie file location is only supported on Windows.",
+        )
         return {
             "ok": False,
             "type": "open_cookie_file_location_result",
@@ -367,8 +547,22 @@ def handle_open_cookie_file_location(message: dict[str, Any]) -> dict[str, Any]:
     try:
         subprocess.Popen(["explorer.exe", f"/select,{output_path}"])
     except OSError as exc:
+        append_diagnostic(
+            "open_location_failed",
+            "openCookieFileLocation",
+            output_path,
+            success=False,
+            error_code="open_location_failed",
+            error="Could not open cookie file location.",
+        )
         raise HostError("Could not open cookie file location.") from exc
 
+    append_diagnostic(
+        "open_location_success",
+        "openCookieFileLocation",
+        output_path,
+        success=True,
+    )
     return {
         "ok": True,
         "type": "open_cookie_file_location_result",
