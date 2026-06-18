@@ -5,7 +5,8 @@ chcp 65001 >nul
 set "NATIVE_DIR=%~dp0"
 set "UNINSTALL_SCRIPT=%NATIVE_DIR%uninstall_native_host.ps1"
 
-echo s9h YouTube Cookie Bridge - Native Host Uninstall
+echo s9h YouTube Cookie Bridge - DEV ONLY Native Host Uninstall
+echo Release users should run ..\uninstall_bridge.cmd from the repository root.
 echo.
 
 if not exist "%UNINSTALL_SCRIPT%" (

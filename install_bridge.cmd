@@ -14,7 +14,7 @@ echo.
 
 if not exist "%HOST_EXE%" (
     echo [ERROR] Missing native-host\dist\cookie_bridge_host.exe
-    echo Build the native host first or use the release ZIP that includes it.
+    echo [ERROR] Build the native host first or use the release ZIP.
     exit /b 1
 )
 

@@ -19,6 +19,9 @@ $HostName = "com.s9h.youtube_downloader.cookies"
 $ScriptDir = Split-Path -Parent $PSCommandPath
 $ScriptDir = (Resolve-Path -LiteralPath $ScriptDir).Path
 
+Write-Host "[DEV ONLY] native\install_native_host.ps1 is for development script-mode testing."
+Write-Host "[DEV ONLY] Normal release installs must use the root install_bridge.cmd."
+
 function Resolve-BridgePath {
     param(
         [Parameter(Mandatory = $true)]

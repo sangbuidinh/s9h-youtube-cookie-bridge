@@ -87,7 +87,7 @@ function Test-RegistryTarget {
         Pass "$BrowserName manifest path points to release EXE"
     }
 
-    if ($ManifestHostPath -match 'py -3|native_host\.py|run_cookie_bridge_host\.cmd|\.cmd$') {
+    if ($ManifestHostPath -match 'py -3|native_host\.py|cookie_bridge_host\.py|run_cookie_bridge_host\.cmd|\.cmd$') {
         Fail "$BrowserName manifest path references script or cmd wrapper"
     } else {
         Pass "$BrowserName manifest path does not reference script mode"

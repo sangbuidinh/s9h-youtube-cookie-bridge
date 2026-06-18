@@ -2,9 +2,9 @@
 setlocal EnableExtensions
 chcp 65001 >nul
 
-echo This is not the release installer.
-echo Please run ..\install_bridge.cmd from the repository root.
-echo Delegating to release installer...
+echo [INFO] This native\ installer is for development only.
+echo [INFO] Release install uses the packaged EXE.
+echo [INFO] Redirecting to the release installer: ..\install_bridge.cmd
 echo.
 
 call "%~dp0..\install_bridge.cmd" %*
